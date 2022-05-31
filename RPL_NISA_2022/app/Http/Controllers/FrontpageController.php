@@ -15,7 +15,7 @@ class FrontpageController extends Controller
         $category = new Category();
 
         $data = [
-            'course' => $course->data()->get(),
+            'course' => $course->data()->limit(3)->where('total_material', '>', '0')->orderBy('course.id', 'desc')->get(),
             'category' => $category->data()->get(),
         ];
     	return view('home', $data);
@@ -124,13 +124,16 @@ class FrontpageController extends Controller
 
         $input = $request->except(['_token']);
         $user = new User();
-        $userData = $user->data($input);
-        if($userData->count() == 0){
+        $query = $user->data($input);
+        if($query->count() == 0){
         	return redirect('auth/login')->with('alert', show_alert('Akun tidak terdaftar, silahkan melakukan registrasi akun terlebih dahulu', 'danger'));
         }
 
-        Session::put('user', $userData->first());
-        return redirect('');
+        $userData = $query->first();
+        Session::put('user', $userData);
+
+        $redirectTo = in_array($userData->role, ['admin', 'instructor']) ? 'dashboard' : '';
+        return redirect($redirectTo);
     }
 
     public function dashboard(){
@@ -148,7 +151,6 @@ class FrontpageController extends Controller
     	if(!$userData){
     		return redirect('auth/login');
     	}
-
     	
     	return view('profile');
     }
